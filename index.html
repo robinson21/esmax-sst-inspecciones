@@ -415,7 +415,7 @@ const AREAS = {
 };
 
 // ── ESTADO ─────────────────────────────────
-let cfg = {sp:'https://esmaxchile.sharepoint.com/teams/SMS',li:'Inspecciones',lh:'Hallazgos',az:'',pa:'https://default729f72ac806047798ce060bbfefbb2.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/33b89f2977ff498d896fccdf04e74bc0/triggers/manual/paths/invoke?api-version=1',gemini:'AIzaSyAngf6V8aOs-y4sysZjnR0XgwFtJODMQAI'};
+let cfg = {sp:'https://esmaxchile.sharepoint.com/teams/SMS',li:'Inspecciones',lh:'Hallazgos',az:'',pa:'https://default729f72ac806047798ce060bbfefbb2.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/33b89f2977ff498d896fccdf04e74bc0/triggers/manual/paths/invoke?api-version=1',gemini:'AIzaSyDUrIXyf7ZfumbdRyWFzzBq-gCuZwhtkqE'};
 let inspeccion = {}, hallazgos = [], fotoActual = null, critActual = '';
 
 // ── INIT ───────────────────────────────────
@@ -556,7 +556,7 @@ function usarGaleria() {
 
 async function analizarIA() {
   if(!fotoActual){alert('Primero sube una fotografía.');return;}
-  const apiKey=cfg.gemini||'AIzaSyAngf6V8aOs-y4sysZjnR0XgwFtJODMQAI';
+  const apiKey=cfg.gemini||'AIzaSyDUrIXyf7ZfumbdRyWFzzBq-gCuZwhtkqE';
   const btn=document.getElementById('btnIA'),st=document.getElementById('iaStatus');
   btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Analizando...';
   st.style.display='block';
@@ -796,7 +796,7 @@ function showConfig() {
   document.getElementById('cfgLH').value=cfg.lh;
   document.getElementById('cfgAZ').value=cfg.az;
   document.getElementById('cfgPA').value=cfg.pa;
-  document.getElementById('cfgIA').value=cfg.gemini||'AIzaSyAngf6V8aOs-y4sysZjnR0XgwFtJODMQAI';
+  document.getElementById('cfgIA').value=cfg.gemini||'AIzaSyDUrIXyf7ZfumbdRyWFzzBq-gCuZwhtkqE';
   document.getElementById('cfgModal').style.display='flex';
 }
 function closeCfg() { document.getElementById('cfgModal').style.display='none'; }
