@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Inspecciones SST — ESMAX</title>
+<style>
+:root {
+  --azul:#1A3C6E; --azul-l:#EBF5FB; --azul-ll:#D9E1F2;
+  --rojo:#C0392B; --rojo-l:#FADBD8;
+  --verde:#1E8449; --verde-l:#EAFAF1;
+  --nar:#E67E22; --nar-l:#FDEBD0;
+  --gris:#f5f6f8; --gris2:#e8eaed;
+  --border:#d1d5db; --text:#1a1a2e; --text2:#6b7280;
+  --white:#ffffff; --radius:10px; --shadow:0 1px 4px rgba(0,0,0,0.07);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:var(--gris);color:var(--text);font-size:14px;min-height:100vh;}
+.app-header{background:var(--azul);color:#fff;padding:13px 22px;display:flex;align-items:center;gap:14px;}
+.app-header .logo{font-size:18px;font-weight:700;letter-spacing:-.3px;}
+.app-header .sub{font-size:11px;opacity:.7;margin-top:1px;}
+.app-header .badge{margin-left:auto;background:rgba(255,255,255,.15);border-radius:20px;padding:4px 14px;font-size:11px;transition:all .3s;max-width:360px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.app-header .btn-cfg{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:7px;padding:5px 11px;font-size:11px;cursor:pointer;font-family:inherit;margin-left:8px;}
+.app-header .btn-cfg:hover{background:rgba(255,255,255,.25);}
+.container{max-width:900px;margin:0 auto;padding:22px 16px;}
+.cfg-banner{background:var(--nar-l);border:1px solid #f0a500;border-radius:var(--radius);padding:12px 16px;margin-bottom:18px;display:flex;align-items:flex-start;gap:10px;}
+.cfg-banner .ico{color:var(--nar);font-size:16px;flex-shrink:0;margin-top:1px;}
+.cfg-banner p{font-size:12px;color:#7d4e00;line-height:1.5;}
+.steps{display:flex;margin-bottom:22px;background:var(--white);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;}
+.step{flex:1;padding:11px 6px;text-align:center;font-size:11px;color:var(--text2);cursor:pointer;border-right:1px solid var(--border);transition:background .15s;}
+.step:last-child{border-right:none;}
+.step.active{background:var(--azul-l);color:var(--azul);font-weight:600;}
+.step.done{background:var(--verde-l);color:var(--verde);}
+.step .sn{display:block;font-size:18px;font-weight:700;margin-bottom:2px;}
+.step .sl{display:block;font-size:10px;}
+.card{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);padding:20px;margin-bottom:16px;box-shadow:var(--shadow);}
+.card-title{font-size:15px;font-weight:600;color:var(--azul);margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--gris2);display:flex;align-items:center;gap:8px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-grid.g3{grid-template-columns:1fr 1fr 1fr;}
+.form-grid.g1{grid-template-columns:1fr;}
+@media(max-width:600px){.form-grid,.form-grid.g3{grid-template-columns:1fr;}}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;}
+.form-group input,.form-group select,.form-group textarea{border:1px solid var(--border);border-radius:7px;padding:9px 12px;font-size:13px;color:var(--text);background:var(--white);outline:none;font-family:inherit;width:100%;transition:border-color .15s;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--azul);box-shadow:0 0 0 3px rgba(26,60,110,.08);}
+.form-group textarea{resize:vertical;min-height:70px;line-height:1.5;}
+.req{color:var(--rojo);}
+.divider{border:none;border-top:1px solid var(--gris2);margin:16px 0;}
+.tipo-info{background:var(--azul-l);border:1px solid #a9cce3;border-radius:8px;padding:10px 14px;margin-top:6px;display:none;}
+.tipo-info .ti-label{font-size:11px;font-weight:700;color:var(--azul);margin-bottom:6px;}
+.chips{display:flex;flex-wrap:wrap;gap:5px;}
+.chip{background:var(--white);border:1px solid #b3cde8;border-radius:12px;padding:2px 9px;font-size:11px;color:var(--azul);}
+.crit-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:4px;}
+.cb{border:1.5px solid var(--border);border-radius:7px;padding:8px 4px;text-align:center;cursor:pointer;font-size:11px;font-weight:600;background:var(--white);color:var(--text2);transition:all .12s;user-select:none;}
+.cb:hover{border-color:#888;}
+.cb.s-ma{background:var(--rojo-l);border-color:var(--rojo);color:var(--rojo);}
+.cb.s-a {background:var(--nar-l); border-color:var(--nar); color:var(--nar);}
+.cb.s-m {background:#FEF9E7;     border-color:#F4D03F;    color:#9A7D0A;}
+.cb.s-b {background:var(--verde-l);border-color:var(--verde);color:var(--verde);}
+.foto-drop{border:2px dashed var(--border);border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;background:var(--gris);transition:all .15s;}
+.foto-drop:hover,.foto-drop.dragover{border-color:var(--azul);background:var(--azul-l);}
+.foto-drop .fdi{font-size:26px;display:block;margin-bottom:6px;}
+.foto-drop p{font-size:12px;color:var(--text2);}
+.foto-preview{width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin-top:10px;display:none;}
+input[type=file]{display:none;}
+.h-item{border:1px solid var(--border);border-radius:var(--radius);padding:13px;margin-bottom:9px;background:var(--white);display:flex;align-items:flex-start;gap:11px;}
+.h-num{background:var(--azul);color:#fff;border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;}
+.h-info{flex:1;}
+.h-title{font-weight:600;font-size:13px;}
+.h-meta{font-size:11px;color:var(--text2);margin-top:3px;}
+.h-del{background:none;border:none;color:var(--text2);cursor:pointer;padding:4px;border-radius:5px;font-size:16px;line-height:1;}
+.h-del:hover{background:var(--rojo-l);color:var(--rojo);}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:5px;}
+.bma{background:var(--rojo-l);color:var(--rojo);}
+.ba{background:var(--nar-l);color:var(--nar);}
+.bm{background:#FEF9E7;color:#9A7D0A;}
+.bb{background:var(--verde-l);color:var(--verde);}
+.btn{border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:7px;transition:all .15s;}
+.btn-primary{background:var(--azul);color:#fff;}
+.btn-primary:hover{background:#122d54;}
+.btn-secondary{background:var(--gris);color:var(--text);border:1px solid var(--border);}
+.btn-secondary:hover{background:var(--gris2);}
+.btn-success{background:var(--verde);color:#fff;}
+.btn-success:hover{background:#165a34;}
+.btn-green{background:var(--verde-l);color:var(--verde);border:1px solid #a9dfbf;}
+.btn-green:hover{background:#d4efdf;}
+.btn-danger{background:var(--rojo-l);color:var(--rojo);}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn-row{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap;}
+.btn-row .btn-secondary{margin-right:auto;}
+.sbox{border-radius:var(--radius);padding:14px 18px;margin-bottom:14px;display:flex;align-items:flex-start;gap:12px;}
+.sbox.info   {background:var(--azul-l); border:1px solid #a9cce3;}
+.sbox.success{background:var(--verde-l);border:1px solid #a9dfbf;}
+.sbox.error  {background:var(--rojo-l); border:1px solid #f1948a;}
+.sbox.warning{background:var(--nar-l);  border:1px solid #f0b27a;}
+.sbox .si{font-size:20px;flex-shrink:0;margin-top:1px;}
+.sbox .st p:first-child{font-weight:600;font-size:13px;margin-bottom:3px;}
+.sbox .st p:last-child{font-size:12px;color:var(--text2);}
+.prog-bar{height:4px;background:var(--gris2);border-radius:2px;margin-top:8px;overflow:hidden;}
+.prog-fill{height:100%;background:var(--azul);border-radius:2px;transition:width .4s;}
+.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.sum-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.sum-tbl th{background:var(--azul);color:#fff;padding:8px 10px;text-align:left;font-weight:600;}
+.sum-tbl td{padding:8px 10px;border-bottom:1px solid var(--gris2);}
+.sum-tbl tr:last-child td{border-bottom:none;}
+.sum-tbl tr:hover td{background:var(--gris);}
+.ia-box{background:var(--azul-l);border:1px solid #a9cce3;border-radius:8px;padding:12px 14px;}
+.ia-box .ia-title{font-size:12px;font-weight:700;color:var(--azul);margin-bottom:5px;}
+.ia-box .ia-desc{font-size:11px;color:#2c5282;line-height:1.5;margin-bottom:10px;}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.metric{background:var(--gris);border-radius:8px;padding:10px 14px;border:1px solid var(--border);}
+.metric .ml{font-size:10px;color:var(--text2);margin-bottom:3px;}
+.metric .mv{font-weight:700;font-size:18px;}
+.step-info{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+.step-row{display:flex;align-items:center;gap:10px;font-size:12px;}
+.step-row .snum{width:22px;height:22px;background:var(--azul);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal{background:var(--white);border-radius:14px;padding:24px;width:100%;max-width:520px;box-shadow:0 8px 32px rgba(0,0,0,.2);}
+.modal-title{font-size:16px;font-weight:700;color:var(--azul);margin-bottom:5px;}
+.modal-sub{font-size:12px;color:var(--text2);margin-bottom:18px;line-height:1.5;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div>
+    <div class="logo">ESMAX SST</div>
+    <div class="sub">Sistema de Inspecciones de Seguridad</div>
+  </div>
+  <div class="badge" id="headerBadge">ESMAX Distribución SpA</div>
+  <button class="btn-cfg" onclick="showConfig()">⚙ Configurar</button>
+</div>
+
+<div class="container">
+
+  <div class="cfg-banner" id="cfgBanner">
+    <div class="ico">⚠</div>
+    <p>Configura las conexiones antes de usar en producción. Haz clic en <strong>⚙ Configurar</strong> e ingresa la URL de SharePoint y la Azure Function.</p>
+  </div>
+
+  <div class="steps">
+    <div class="step active" id="s1t" onclick="goTo(1)"><span class="sn">1</span><span class="sl">Encabezado</span></div>
+    <div class="step" id="s2t" onclick="goTo(2)"><span class="sn">2</span><span class="sl">Hallazgos</span></div>
+    <div class="step" id="s3t" onclick="goTo(3)"><span class="sn">3</span><span class="sl">Revisar</span></div>
+    <div class="step" id="s4t" onclick="goTo(4)"><span class="sn">4</span><span class="sl">Enviar</span></div>
+  </div>
+
+  <!-- PASO 1 -->
+  <div id="v1">
+    <div class="card">
+      <div class="card-title">📋 Datos de la inspección</div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Tipo de centro de trabajo <span class="req">*</span></label>
+          <select id="fTipo" onchange="onTipoChange()">
+            <option value="">Seleccionar tipo...</option>
+            <option value="Depositario">Depositario</option>
+            <option value="Aeroplanta">Aeroplanta</option>
+            <option value="Contrato Minero">Contrato Minero</option>
+            <option value="Estación de Servicio">Estación de Servicio</option>
+            <option value="Tienda de Conveniencia">Tienda de Conveniencia</option>
+            <option value="Planta de Combustibles">Planta de Combustibles</option>
+            <option value="Planta de Lubricantes">Planta de Lubricantes</option>
+          </select>
+          <div class="tipo-info" id="tipoInfo">
+            <div class="ti-label">Áreas disponibles para este tipo:</div>
+            <div class="chips" id="tipoChips"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Nombre del centro de trabajo <span class="req">*</span></label>
+          <input type="text" id="fNombre" placeholder="Ej: Planta Lubricantes Maipú, EDS Los Leones..." oninput="onNombreInput()" />
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Fecha de inspección <span class="req">*</span></label>
+          <input type="date" id="fFecha" />
+        </div>
+        <div class="form-group">
+          <label>Inspector SST <span class="req">*</span></label>
+          <select id="fInspector" onchange="onInspectorChange()">
+            <option value="">Seleccionar inspector...</option>
+            <option value="Robinson Armijo Vargas">Robinson Armijo Vargas</option>
+            <option value="Edgardo Hormazabal Pino">Edgardo Hormazabal Pino</option>
+            <option value="Sebastian Toledo Otarola">Sebastian Toledo Otarola</option>
+            <option value="Paulina Conteras Martínez">Paulina Conteras Martínez</option>
+            <option value="Carolina Aguirre Castillo">Carolina Aguirre Castillo</option>
+            <option value="Leonardo Pedreros">Leonardo Pedreros</option>
+            <option value="Cristian Zamorano Pino">Cristian Zamorano Pino</option>
+            <option value="Manuel Moyano">Manuel Moyano</option>
+            <option value="Patricio Silva">Patricio Silva</option>
+            <option value="Oliver Echeverría">Oliver Echeverría</option>
+            <option value="Gerardo Jaña">Gerardo Jaña</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Correo del inspector <span class="req">*</span></label>
+          <input type="email" id="fEmail" placeholder="Se completa automáticamente" readonly
+            style="background:#f5f6f8;color:#1E8449;font-weight:600;" />
+          <span id="emailHint" style="font-size:10px;color:#1E8449;margin-top:3px;display:none;">
+            ✓ El informe se enviará a este correo para tu revisión.
+          </span>
+        </div>
+        <div class="form-group">
+          <label>Área inspeccionada <span class="req">*</span></label>
+          <select id="fArea">
+            <option value="">— Selecciona primero el tipo de centro —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Turno</label>
+          <select id="fTurno">
+            <option value="">Seleccionar turno...</option>
+            <option>Mañana (06:00 – 14:00)</option>
+            <option>Tarde (14:00 – 22:00)</option>
+            <option>Noche (22:00 – 06:00)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-grid g1" style="margin-top:14px;">
+        <div class="form-group">
+          <label>Observaciones generales</label>
+          <textarea id="fObs" placeholder="Condiciones especiales del día, actividades en curso, personal presente, etc."></textarea>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="paso1ok()">Continuar → Agregar hallazgos</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 2 -->
+  <div id="v2" style="display:none;">
+    <div class="card">
+      <div class="card-title">
+        🔍 Hallazgos registrados
+        <span id="hCount" style="background:var(--azul);color:#fff;border-radius:12px;padding:2px 9px;font-size:12px;margin-left:4px;">0</span>
+      </div>
+      <div id="hList"><p style="color:var(--text2);font-size:13px;text-align:center;padding:20px 10px;">Sin hallazgos aún. Usa el formulario de abajo para agregar.</p></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">➕ Registrar nuevo hallazgo</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Título del hallazgo <span class="req">*</span></label>
+          <input type="text" id="hTitulo" placeholder="Ej: Rack con daño estructural activo" />
+        </div>
+        <div class="form-group">
+          <label>Sector / ubicación específica <span class="req">*</span></label>
+          <input type="text" id="hSector" placeholder="Ej: Pasillo B, Rack R-14, Nivel 2" />
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:14px;">
+        <label>Nivel de criticidad <span class="req">*</span></label>
+        <div class="crit-grid">
+          <div class="cb" id="cb1" onclick="selCrit('MUY ALTA')">⛔ MUY ALTA</div>
+          <div class="cb" id="cb2" onclick="selCrit('ALTA')">⚠ ALTA</div>
+          <div class="cb" id="cb3" onclick="selCrit('MEDIA')">🔵 MEDIA</div>
+          <div class="cb" id="cb4" onclick="selCrit('BAJA')">✅ BAJA</div>
+        </div>
+        <input type="hidden" id="hCrit" />
+      </div>
+      <div class="form-grid g1" style="margin-top:14px;">
+        <div class="form-group">
+          <label>Descripción del hallazgo <span class="req">*</span></label>
+          <textarea id="hDesc" rows="3" placeholder="Describe objetivamente lo observado: qué, dónde, en qué condición..."></textarea>
+        </div>
+      </div>
+      <div class="form-grid" style="margin-top:14px;">
+        <div class="form-group">
+          <label>Fotografía del hallazgo</label>
+          <div class="foto-drop" id="fotoDrop"
+            onclick="document.getElementById('fotoInput').click()"
+            ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+            <span class="fdi">📷</span>
+            <p>Toca o arrastra la imagen aquí</p>
+            <p style="font-size:11px;margin-top:4px;opacity:.7;">JPG / PNG — máx. 10 MB</p>
+          </div>
+          <input type="file" id="fotoInput" accept="image/*" onchange="onFotoSelect(event)" />
+          <img id="fotoPreview" class="foto-preview" />
+          <button class="btn btn-danger" id="fotoRemoveBtn" style="display:none;margin-top:8px;font-size:11px;padding:5px 12px;" onclick="removeFoto()">✕ Quitar foto</button>
+        </div>
+        <div class="form-group">
+          <label>Análisis con inteligencia artificial</label>
+          <div class="ia-box">
+            <div class="ia-title">🤖 Gemini AI</div>
+            <div class="ia-desc">Sube la foto y la IA completará automáticamente descripción, riesgos, recomendaciones y normativa chilena aplicable.</div>
+            <button class="btn btn-primary" style="font-size:11px;padding:7px 14px;width:100%;" onclick="analizarIA()" id="btnIA">🤖 Analizar imagen con IA</button>
+          </div>
+          <div id="iaStatus" style="display:none;margin-top:8px;"></div>
+        </div>
+      </div>
+      <div class="form-grid g1" style="margin-top:14px;">
+        <div class="form-group">
+          <label>Riesgos identificados <span style="font-size:10px;font-weight:400;color:var(--text2);">— separar con punto y coma ( ; )</span></label>
+          <textarea id="hRiesgos" rows="2" placeholder="Ej: Caída de objetos en altura; Atrapamiento de miembros; Golpe con consecuencias graves"></textarea>
+        </div>
+        <div class="form-group" style="margin-top:10px;">
+          <label>Recomendaciones <span style="font-size:10px;font-weight:400;color:var(--text2);">— separar con punto y coma ( ; )</span></label>
+          <textarea id="hRecs" rows="2" placeholder="Ej: Descargar rack inmediatamente; Solicitar inspección estructural; Señalizar área"></textarea>
+        </div>
+        <div class="form-group" style="margin-top:10px;">
+          <label>Normativa aplicable <span style="font-size:10px;font-weight:400;color:var(--text2);">— separar con punto y coma ( ; )</span></label>
+          <textarea id="hNorm" rows="2" placeholder="Ej: DS 594/1999 Art. 84; Ley 16.744 Art. 68; NCh 2190:1993"></textarea>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="limpiarH()">🗑 Limpiar</button>
+        <button class="btn btn-green" onclick="agregarH()">+ Agregar hallazgo</button>
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-top:0;">
+      <button class="btn btn-secondary" onclick="goTo(1)">← Volver</button>
+      <button class="btn btn-primary" onclick="paso2ok()">Continuar → Revisar</button>
+    </div>
+  </div>
+
+  <!-- PASO 3 -->
+  <div id="v3" style="display:none;">
+    <div class="card">
+      <div class="card-title">📄 Resumen de la inspección</div>
+      <div id="resCab"></div>
+      <hr class="divider">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin-bottom:10px;">Hallazgos registrados</div>
+      <div id="resH"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goTo(2)">← Editar hallazgos</button>
+      <button class="btn btn-success" onclick="goTo(4)">✓ Confirmar y enviar</button>
+    </div>
+  </div>
+
+  <!-- PASO 4 -->
+  <div id="v4" style="display:none;">
+    <div class="card">
+      <div class="card-title">🚀 Enviar inspección</div>
+      <div id="v4status">
+        <div class="sbox info">
+          <div class="si">ℹ</div>
+          <div class="st">
+            <p>Listo para enviar</p>
+            <p>Los datos se guardarán en SharePoint y el informe Word se generará automáticamente.</p>
+          </div>
+        </div>
+      </div>
+      <div id="v4metrics"></div>
+      <div class="step-info" id="stepInfo">
+        <div class="step-row"><div class="snum">1</div>Guardar datos de inspección y hallazgos en SharePoint</div>
+        <div class="step-row"><div class="snum">2</div>Disparar flujo Power Automate → Gemini AI analiza fotografías</div>
+        <div class="step-row"><div class="snum">3</div>Azure Function genera informe Word (.docx) con imágenes</div>
+        <div class="step-row"><div class="snum">4</div>Guardar informe en SharePoint y notificar por correo al equipo</div>
+      </div>
+      <div class="prog-bar" id="progBar" style="display:none;"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+      <div id="progLabel" style="font-size:11px;color:var(--text2);margin-top:6px;display:none;"></div>
+      <div class="btn-row" id="v4btns">
+        <button class="btn btn-secondary" onclick="goTo(3)">← Volver</button>
+        <button class="btn btn-success" id="btnEnviar" onclick="enviar()">🚀 Enviar inspección</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL CONFIG -->
+<div class="modal-overlay" id="cfgModal" style="display:none;">
+  <div class="modal">
+    <div class="modal-title">⚙ Configuración de conexiones</div>
+    <div class="modal-sub">Ingresa los datos de tu entorno Microsoft 365. Se guardan localmente en el navegador de este dispositivo.</div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="form-group">
+        <label>URL del sitio SharePoint <span class="req">*</span></label>
+        <input type="text" id="cfgSP" placeholder="https://esmax.sharepoint.com/sites/SST-ESMAX-Lubricantes" />
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>Lista Inspecciones</label><input type="text" id="cfgLI" value="Inspecciones" /></div>
+        <div class="form-group"><label>Lista Hallazgos</label><input type="text" id="cfgLH" value="Hallazgos" /></div>
+      </div>
+      <div class="form-group">
+        <label>URL Azure Function</label>
+        <input type="text" id="cfgAZ" placeholder="https://esmax-sst-informes.azurewebsites.net/api/GenerarInformeSST?code=..." />
+      </div>
+      <div class="form-group">
+        <label>URL flujo Power Automate (opcional)</label>
+        <input type="text" id="cfgPA" placeholder="https://prod-XX.logic.azure.com/workflows/..." />
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeCfg()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCfg()">Guardar configuración</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── ÁREAS POR TIPO DE CENTRO ───────────────
+const AREAS = {
+  'Depositario':['Área de Almacenamiento de Combustibles','Zona de Carga y Descarga','Patio Exterior / Circulación','Bodega de Sustancias Peligrosas','Oficinas / Área Administrativa','Baños / Vestuarios','Otro'],
+  'Aeroplanta':['Plataforma de Abastecimiento','Zona de Hidrantes','Área de Almacenamiento Jet A1','Sala de Bombas','Patio Exterior / Circulación','Bodega de Sustancias Peligrosas','Oficinas / Área Administrativa','Baños / Vestuarios','Otro'],
+  'Contrato Minero':['Área de Abastecimiento de Equipos','Zona de Almacenamiento de Combustibles','Patio Exterior / Circulación','Sala de Bombas','Bodega de Sustancias Peligrosas','Comedores / Instalaciones de Bienestar','Baños / Vestuarios','Otro'],
+  'Estación de Servicio':['Pista de Abastecimiento','Sala de Máquinas / Compresores','Canopy / Zona de Isletas','Tienda / Minimarket','Zona de GNC / Gas','Lavado de Vehículos','Oficinas / Caja','Bodega','Baños / Vestuarios','Otro'],
+  'Tienda de Conveniencia':['Sala de Ventas','Bodega / Almacén','Zona de Preparación de Alimentos','Cámara de Frío','Oficinas / Caja','Baños / Vestuarios','Otro'],
+  'Planta de Combustibles':['Área de Almacenamiento (Estanques)','Sala de Bombas','Zona de Carga de Camiones','Laboratorio de Control de Calidad','Zona de Mantenimiento','Patio Exterior / Circulación','Bodega de Sustancias Peligrosas','Sala de Control','Oficinas / Área Administrativa','Baños / Vestuarios','Comedor','Otro'],
+  'Planta de Lubricantes':['Galpón Producción','Planta Coolant','Planta Grasa','Zona de Piqueo / Despacho','Mesa de Carga a Granel','Bodega de Sustancias Peligrosas','Sala de Calderas','Patio Exterior / Circulación','Zona de Almacenamiento','Laboratorio','Oficinas / Área Administrativa','Baños / Vestuarios','Comedor','Otro']
+};
+
+// ── ESTADO ─────────────────────────────────
+let cfg = {sp:'',li:'Inspecciones',lh:'Hallazgos',az:'',pa:''};
+let inspeccion = {}, hallazgos = [], fotoActual = null, critActual = '';
+
+// ── INIT ───────────────────────────────────
+window.onload = () => {
+  document.getElementById('fFecha').value = new Date().toISOString().split('T')[0];
+  const s = localStorage.getItem('esmax_sst_cfg');
+  if (s) { cfg = {...cfg,...JSON.parse(s)}; if (cfg.sp) document.getElementById('cfgBanner').style.display='none'; }
+};
+
+// ── NAVEGACIÓN ─────────────────────────────
+function goTo(n) {
+  [1,2,3,4].forEach(i => {
+    document.getElementById('v'+i).style.display = i===n?'block':'none';
+    const t = document.getElementById('s'+i+'t');
+    t.className = 'step'+(i===n?' active':i<n?' done':'');
+  });
+  if (n===3) buildResumen();
+  if (n===4) buildMetrics();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── TIPO DE CENTRO ─────────────────────────
+function onTipoChange() {
+  const tipo = document.getElementById('fTipo').value;
+  const sel  = document.getElementById('fArea');
+  const info = document.getElementById('tipoInfo');
+  sel.innerHTML = '';
+  if (!tipo) {
+    sel.innerHTML = '<option value="">— Selecciona primero el tipo de centro —</option>';
+    info.style.display = 'none';
+    document.getElementById('headerBadge').textContent = 'ESMAX Distribución SpA';
+    return;
+  }
+  const areas = AREAS[tipo] || [];
+  sel.innerHTML = '<option value="">Seleccionar área...</option>';
+  areas.forEach(a => { const o=document.createElement('option'); o.value=a; o.textContent=a; sel.appendChild(o); });
+  info.style.display = 'block';
+  const vis = areas.slice(0,5), resto = areas.length-5;
+  document.getElementById('tipoChips').innerHTML =
+    vis.map(a=>`<span class="chip">${a}</span>`).join('')+
+    (resto>0?`<span class="chip">+${resto} más</span>`:'');
+  updateBadge();
+}
+
+function onNombreInput() { updateBadge(); }
+
+function updateBadge() {
+  const t = document.getElementById('fTipo').value;
+  const n = document.getElementById('fNombre').value.trim();
+  let txt = n && t ? n+' — '+t : n || t || 'ESMAX Distribución SpA';
+  document.getElementById('headerBadge').textContent = txt;
+}
+
+// ── PASO 1 ─────────────────────────────────
+function paso1ok() {
+  const v = id => document.getElementById(id).value.trim();
+  if (!v('fTipo'))     { alert('Selecciona el Tipo de centro de trabajo.'); document.getElementById('fTipo').focus(); return; }
+  if (!v('fNombre'))   { alert('Ingresa el Nombre del centro de trabajo.');  document.getElementById('fNombre').focus(); return; }
+  if (!v('fFecha'))    { alert('Selecciona la Fecha de inspección.'); return; }
+  if (!v('fInspector')){ alert('Ingresa el nombre del Inspector SST.'); document.getElementById('fInspector').focus(); return; }
+  if (!v('fEmail'))    { alert('Selecciona un inspector para continuar.'); document.getElementById('fInspector').focus(); return; }
+  if (!v('fArea'))     { alert('Selecciona el Área inspeccionada.'); return; }
+  inspeccion = { tipoCentro:v('fTipo'), nombreCentro:v('fNombre'), fecha:v('fFecha'), inspector:v('fInspector'), email:v('fEmail'), area:v('fArea'), turno:v('fTurno'), observaciones:v('fObs') };
+  goTo(2);
+}
+
+// ── FOTO ───────────────────────────────────
+function onDragOver(e)  { e.preventDefault(); document.getElementById('fotoDrop').classList.add('dragover'); }
+function onDragLeave()  { document.getElementById('fotoDrop').classList.remove('dragover'); }
+function onDrop(e) { e.preventDefault(); document.getElementById('fotoDrop').classList.remove('dragover'); const f=e.dataTransfer.files[0]; if(f&&f.type.startsWith('image/')) loadImg(f); }
+function onFotoSelect(e){ const f=e.target.files[0]; if(f) loadImg(f); }
+function loadImg(file) {
+  if(file.size>10*1024*1024){alert('La imagen supera 10 MB.');return;}
+  const r=new FileReader();
+  r.onload=ev=>{
+    fotoActual=ev.target.result;
+    const p=document.getElementById('fotoPreview'); p.src=fotoActual; p.style.display='block';
+    document.getElementById('fotoDrop').style.display='none';
+    document.getElementById('fotoRemoveBtn').style.display='inline-flex';
+  };
+  r.readAsDataURL(file);
+}
+function removeFoto() {
+  fotoActual=null;
+  document.getElementById('fotoPreview').style.display='none';
+  document.getElementById('fotoDrop').style.display='block';
+  document.getElementById('fotoRemoveBtn').style.display='none';
+  document.getElementById('fotoInput').value='';
+  document.getElementById('iaStatus').style.display='none';
+}
+
+// ── CRITICIDAD ─────────────────────────────
+function selCrit(v) {
+  critActual=v; document.getElementById('hCrit').value=v;
+  const m={'MUY ALTA':'cb1','ALTA':'cb2','MEDIA':'cb3','BAJA':'cb4'};
+  const c={'MUY ALTA':'s-ma','ALTA':'s-a','MEDIA':'s-m','BAJA':'s-b'};
+  ['cb1','cb2','cb3','cb4'].forEach(id=>document.getElementById(id).className='cb');
+  if(m[v]) document.getElementById(m[v]).className='cb '+c[v];
+}
+
+// ── IA ─────────────────────────────────────
+async function analizarIA() {
+  if(!fotoActual){alert('Primero sube una fotografía.');return;}
+  if(!cfg.az&&!cfg.pa){alert('Configura la URL de la Azure Function en ⚙ Configurar.');return;}
+  const btn=document.getElementById('btnIA'), st=document.getElementById('iaStatus');
+  btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Analizando...';
+  st.style.display='block';
+  st.innerHTML='<div class="sbox info"><div class="si">🤖</div><div class="st"><p>Enviando imagen a Gemini AI...</p><p>Esto puede tardar 5–15 segundos.</p></div></div>';
+  try {
+    const res = await fetch(cfg.az||cfg.pa, {method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mode:'analizar',fotoBase64:fotoActual.split(',')[1],titulo:document.getElementById('hTitulo').value,sector:document.getElementById('hSector').value})});
+    const d = await res.json();
+    if(d.success&&d.analisis){
+      const a=d.analisis;
+      if(a.descripcion) document.getElementById('hDesc').value=a.descripcion;
+      if(a.riesgos) document.getElementById('hRiesgos').value=a.riesgos;
+      if(a.recomendaciones) document.getElementById('hRecs').value=a.recomendaciones;
+      if(a.normativa) document.getElementById('hNorm').value=a.normativa;
+      if(a.criticidad) selCrit(a.criticidad);
+      if(a.titulo&&!document.getElementById('hTitulo').value) document.getElementById('hTitulo').value=a.titulo;
+      st.innerHTML='<div class="sbox success"><div class="si">✅</div><div class="st"><p>Análisis completado</p><p>Revisa y corrige si es necesario antes de agregar el hallazgo.</p></div></div>';
+    } else throw new Error(d.error||'Sin respuesta válida');
+  } catch(e) {
+    st.innerHTML=`<div class="sbox error"><div class="si">✕</div><div class="st"><p>Error en el análisis</p><p>${e.message}. Completa los campos manualmente.</p></div></div>`;
+  }
+  btn.disabled=false; btn.innerHTML='🤖 Analizar imagen con IA';
+}
+
+// ── HALLAZGOS ──────────────────────────────
+function agregarH() {
+  const v=id=>document.getElementById(id).value.trim();
+  if(!v('hTitulo')){alert('Ingresa el título del hallazgo.');document.getElementById('hTitulo').focus();return;}
+  if(!v('hSector')){alert('Ingresa el sector / ubicación.');document.getElementById('hSector').focus();return;}
+  if(!v('hDesc'))  {alert('Ingresa la descripción del hallazgo.');document.getElementById('hDesc').focus();return;}
+  if(!critActual)  {alert('Selecciona el nivel de criticidad.');return;}
+  hallazgos.push({numero:hallazgos.length+1,titulo:v('hTitulo'),sector:v('hSector'),criticidad:critActual,descripcion:v('hDesc'),riesgos:v('hRiesgos'),recomendaciones:v('hRecs'),normativa:v('hNorm'),fotoBase64:fotoActual?fotoActual.split(',')[1]:null,fotoPreview:fotoActual});
+  renderH(); limpiarH();
+}
+
+function renderH() {
+  document.getElementById('hCount').textContent = hallazgos.length;
+  if(!hallazgos.length){document.getElementById('hList').innerHTML='<p style="color:var(--text2);font-size:13px;text-align:center;padding:20px;">Sin hallazgos aún.</p>';return;}
+  const bc={'MUY ALTA':'bma','ALTA':'ba','MEDIA':'bm','BAJA':'bb'};
+  document.getElementById('hList').innerHTML=hallazgos.map((h,i)=>`
+    <div class="h-item">
+      <div class="h-num">${h.numero}</div>
+      ${h.fotoPreview?`<img src="${h.fotoPreview}" style="width:50px;height:50px;object-fit:cover;border-radius:7px;flex-shrink:0;">` : ''}
+      <div class="h-info">
+        <div class="h-title">${h.titulo}<span class="badge ${bc[h.criticidad]||'ba'}">${h.criticidad}</span></div>
+        <div class="h-meta">${h.sector} &nbsp;·&nbsp; ${h.descripcion.substring(0,90)}${h.descripcion.length>90?'...':''}</div>
+      </div>
+      <button class="h-del" onclick="eliminarH(${i})" title="Eliminar">✕</button>
+    </div>`).join('');
+}
+
+function eliminarH(i) {
+  if(!confirm(`¿Eliminar el hallazgo N°${hallazgos[i].numero}?`))return;
+  hallazgos.splice(i,1); hallazgos.forEach((h,j)=>h.numero=j+1); renderH();
+}
+
+function limpiarH() {
+  ['hTitulo','hSector','hDesc','hRiesgos','hRecs','hNorm'].forEach(id=>document.getElementById(id).value='');
+  critActual=''; document.getElementById('hCrit').value='';
+  ['cb1','cb2','cb3','cb4'].forEach(id=>document.getElementById(id).className='cb');
+  removeFoto();
+}
+
+function paso2ok() { if(!hallazgos.length){alert('Agrega al menos un hallazgo antes de continuar.');return;} goTo(3); }
+
+// ── RESUMEN ────────────────────────────────
+function buildResumen() {
+  const f=new Date(inspeccion.fecha+'T12:00:00');
+  const ff=f.toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'});
+  const ma=hallazgos.filter(h=>h.criticidad==='MUY ALTA').length;
+  document.getElementById('resCab').innerHTML=`
+    <table class="sum-tbl">
+      <tr><th style="width:38%">Campo</th><th>Valor</th></tr>
+      <tr><td>Tipo de centro</td><td><strong>${inspeccion.tipoCentro}</strong></td></tr>
+      <tr><td>Nombre del centro</td><td><strong>${inspeccion.nombreCentro}</strong></td></tr>
+      <tr><td>Fecha</td><td>${ff}</td></tr>
+      <tr><td>Inspector SST</td><td>${inspeccion.inspector}</td></tr>
+      <tr><td>Correo inspector</td><td>${inspeccion.email}</td></tr>
+      <tr><td>Área inspeccionada</td><td>${inspeccion.area}</td></tr>
+      ${inspeccion.turno?`<tr><td>Turno</td><td>${inspeccion.turno}</td></tr>`:''}
+      <tr><td>Total hallazgos</td><td><strong>${hallazgos.length}</strong>${ma>0?` <span class="badge bma">${ma} MUY ALTA</span>`:''}</td></tr>
+      ${inspeccion.observaciones?`<tr><td>Observaciones</td><td>${inspeccion.observaciones}</td></tr>`:''}
+    </table>`;
+  const bc={'MUY ALTA':'bma','ALTA':'ba','MEDIA':'bm','BAJA':'bb'};
+  document.getElementById('resH').innerHTML=hallazgos.map(h=>`
+    <div class="h-item" style="margin-bottom:8px;">
+      <div class="h-num">${h.numero}</div>
+      ${h.fotoPreview?`<img src="${h.fotoPreview}" style="width:46px;height:46px;object-fit:cover;border-radius:6px;flex-shrink:0;">`:''}
+      <div class="h-info">
+        <div class="h-title">${h.titulo}<span class="badge ${bc[h.criticidad]||'ba'}">${h.criticidad}</span></div>
+        <div class="h-meta">${h.sector}</div>
+        <div class="h-meta" style="margin-top:2px;">${h.descripcion.substring(0,120)}${h.descripcion.length>120?'...':''}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── MÉTRICAS ───────────────────────────────
+function buildMetrics() {
+  const ma=hallazgos.filter(h=>h.criticidad==='MUY ALTA').length;
+  document.getElementById('v4metrics').innerHTML=`
+    <div class="metrics">
+      <div class="metric"><div class="ml">Centro de trabajo</div><div class="mv" style="font-size:13px;">${inspeccion.nombreCentro}</div></div>
+      <div class="metric"><div class="ml">Tipo</div><div class="mv" style="font-size:13px;">${inspeccion.tipoCentro}</div></div>
+      <div class="metric"><div class="ml">Total hallazgos</div><div class="mv">${hallazgos.length}</div></div>
+      <div class="metric" style="background:${ma>0?'var(--rojo-l)':'var(--verde-l)'};border-color:${ma>0?'#f1948a':'#a9dfbf'};">
+        <div class="ml">Acción inmediata</div>
+        <div class="mv" style="color:${ma>0?'var(--rojo)':'var(--verde)'};">${ma}</div>
+      </div>
+    </div>`;
+}
+
+// ── ENVIAR ─────────────────────────────────
+async function enviar() {
+  const btn=document.getElementById('btnEnviar'), pb=document.getElementById('progBar');
+  const pf=document.getElementById('progFill'), pl=document.getElementById('progLabel');
+  const si=document.getElementById('stepInfo');
+  btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Enviando...';
+  pb.style.display='block'; pl.style.display='block'; si.style.display='none';
+  const prog=(p,t)=>{pf.style.width=p+'%';pl.textContent=t;};
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  try {
+    prog(15,'Guardando inspección en SharePoint...');
+    let id='DEMO-'+Date.now();
+    if(cfg.sp&&cfg.li) {
+      const fd=await getDigest(cfg.sp);
+      const tipo=`SP.Data.${cfg.li.replace(/[\s-]/g,'')}ListItem`;
+      const r=await fetch(`${cfg.sp}/_api/web/lists/getbytitle('${cfg.li}')/items`,{
+        method:'POST',credentials:'include',
+        headers:{'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose','X-RequestDigest':fd},
+        body:JSON.stringify({__metadata:{type:tipo},Title:`INSP-${Date.now()}`,TipoCentroTrabajo:inspeccion.tipoCentro,NombreCentroTrabajo:inspeccion.nombreCentro,FechaInspeccion:inspeccion.fecha,Inspector:inspeccion.inspector,EmailInspector:inspeccion.email,AreaInspeccionada:inspeccion.area,Turno:inspeccion.turno||'',Observaciones:inspeccion.observaciones||'',TotalHallazgos:hallazgos.length,Estado:'Borrador'})
+      });
+      if(!r.ok) throw new Error('Error guardando en SharePoint ('+r.status+')');
+      id=(await r.json()).d.Id;
+    } else await sleep(700);
+
+    prog(35,'Guardando '+hallazgos.length+' hallazgo(s)...');
+    if(cfg.sp&&cfg.lh&&!String(id).startsWith('DEMO')) {
+      const fd2=await getDigest(cfg.sp);
+      const tipo2=`SP.Data.${cfg.lh.replace(/[\s-]/g,'')}ListItem`;
+      for(const h of hallazgos) {
+        await fetch(`${cfg.sp}/_api/web/lists/getbytitle('${cfg.lh}')/items`,{
+          method:'POST',credentials:'include',
+          headers:{'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose','X-RequestDigest':fd2},
+          body:JSON.stringify({__metadata:{type:tipo2},Title:h.titulo,InspeccionIDId:id,NumeroHallazgo:h.numero,Sector:h.sector,Criticidad:h.criticidad,Descripcion:h.descripcion,Riesgos:h.riesgos||'',Recomendaciones:h.recomendaciones||'',Normativa:h.normativa||''})
+        });
+      }
+    } else await sleep(500*hallazgos.length);
+
+    prog(60,'Disparando flujo Power Automate...');
+    if(cfg.sp&&cfg.li&&!String(id).startsWith('DEMO')) {
+      const fd3=await getDigest(cfg.sp);
+      const tipo3=`SP.Data.${cfg.li.replace(/[\s-]/g,'')}ListItem`;
+      await fetch(`${cfg.sp}/_api/web/lists/getbytitle('${cfg.li}')/items(${id})`,{
+        method:'POST',credentials:'include',
+        headers:{'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose','X-RequestDigest':fd3,'IF-MATCH':'*','X-HTTP-Method':'MERGE'},
+        body:JSON.stringify({__metadata:{type:tipo3},Estado:'Enviado'})
+      });
+    } else if(cfg.pa) {
+      await fetch(cfg.pa,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({inspeccion:{...inspeccion},hallazgos:hallazgos.map(h=>({...h,fotoPreview:undefined}))})});
+    } else await sleep(900);
+
+    prog(80,'Azure Function generando informe Word...');
+    if(cfg.az) {
+      await fetch(cfg.az,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({inspeccion:{tipoCentro:inspeccion.tipoCentro,nombreCentro:inspeccion.nombreCentro,fecha:fmtFecha(inspeccion.fecha),inspector:inspeccion.inspector,email:inspeccion.email,area:inspeccion.area},hallazgos:hallazgos.map(h=>({...h,fotoPreview:undefined}))})
+      });
+    } else await sleep(1200);
+
+    prog(100,'¡Listo!'); await sleep(300);
+    document.getElementById('v4status').innerHTML=`
+      <div class="sbox success" style="flex-direction:column;align-items:flex-start;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+          <div class="si">✅</div>
+          <div class="st"><p>Inspección enviada exitosamente</p><p>ID de registro: ${id}</p></div>
+        </div>
+        <div style="background:var(--white);border-radius:8px;padding:12px;width:100%;font-size:12px;border:1px solid #a9dfbf;">
+          <p style="font-weight:600;color:var(--verde);margin-bottom:5px;">¿Qué ocurre ahora?</p>
+          <p style="color:var(--text2);line-height:1.6;">Power Automate procesa los hallazgos · Gemini AI analiza las fotos · La Azure Function genera el informe Word · El documento se guarda en SharePoint y se notifica por correo al equipo SST.</p>
+        </div>
+      </div>`;
+    document.getElementById('v4btns').innerHTML='<button class="btn btn-primary" onclick="nuevaInspeccion()">+ Nueva inspección</button>';
+  } catch(e) {
+    pb.style.display='none'; pl.style.display='none'; si.style.display='flex';
+    document.getElementById('v4status').innerHTML=`<div class="sbox error"><div class="si">✕</div><div class="st"><p>Error al enviar</p><p>${e.message}</p></div></div>`;
+    btn.disabled=false; btn.innerHTML='🚀 Reintentar';
+  }
+}
+
+// ── UTILS ──────────────────────────────────
+async function getDigest(sp) {
+  const r=await fetch(`${sp}/_api/contextinfo`,{method:'POST',headers:{'Accept':'application/json;odata=verbose'},credentials:'include'});
+  return (await r.json()).d.GetContextWebInformation.FormDigestValue;
+}
+function fmtFecha(iso) {
+  const d=new Date(iso+'T12:00:00');
+  return d.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+
+function nuevaInspeccion() {
+  hallazgos=[]; inspeccion={}; fotoActual=null; critActual='';
+  document.getElementById('fTipo').value='';
+  document.getElementById('fNombre').value='';
+  document.getElementById('fFecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('fInspector').selectedIndex=0;
+  document.getElementById('fEmail').value='';
+  document.getElementById('emailHint').style.display='none';
+  document.getElementById('fArea').innerHTML='<option value="">— Selecciona primero el tipo de centro —</option>';
+  document.getElementById('fTurno').value='';
+  document.getElementById('fObs').value='';
+  document.getElementById('tipoInfo').style.display='none';
+  document.getElementById('headerBadge').textContent='ESMAX Distribución SpA';
+  renderH();
+  document.getElementById('v4status').innerHTML='<div class="sbox info"><div class="si">ℹ</div><div class="st"><p>Listo para enviar</p><p>Los datos se guardarán en SharePoint y el informe Word se generará automáticamente.</p></div></div>';
+  document.getElementById('v4btns').innerHTML='<button class="btn btn-secondary" onclick="goTo(3)">← Volver</button><button class="btn btn-success" id="btnEnviar" onclick="enviar()">🚀 Enviar inspección</button>';
+  document.getElementById('progBar').style.display='none';
+  document.getElementById('progLabel').style.display='none';
+  document.getElementById('stepInfo').style.display='flex';
+  goTo(1);
+}
+
+// ── CONFIG ─────────────────────────────────
+const INSPECTORES = {
+  'Robinson Armijo Vargas':    'robinson.armijo@esmax.cl',
+  'Edgardo Hormazabal Pino':   'edgardo.hormazabal@esmax.cl',
+  'Sebastian Toledo Otarola':  'sebastian.toledo@esmax.cl',
+  'Paulina Conteras Martínez': 'paulina.conteras@esmax.cl',
+  'Carolina Aguirre Castillo': 'carolina.aguirrec@esmax.cl',
+  'Leonardo Pedreros':         'leonardo.pedreros@esmax.cl',
+  'Cristian Zamorano Pino':    'cristian.zamorano@esmax.cl',
+  'Manuel Moyano':             'manuel.moyano@esmax.cl',
+  'Patricio Silva':            'patricio.silva@esmax.cl',
+  'Oliver Echeverría':         'oliver.echeverria@esmax.cl',
+  'Gerardo Jaña':              'gerardo.jana@esmax.cl',
+};
+
+function onInspectorChange() {
+  const nombre = document.getElementById('fInspector').value;
+  const emailInput = document.getElementById('fEmail');
+  const hint = document.getElementById('emailHint');
+  if (nombre && INSPECTORES[nombre]) {
+    emailInput.value = INSPECTORES[nombre];
+    hint.style.display = 'block';
+  } else {
+    emailInput.value = '';
+    hint.style.display = 'none';
+  }
+}
+
+function showConfig() {
+  document.getElementById('cfgSP').value=cfg.sp;
+  document.getElementById('cfgLI').value=cfg.li;
+  document.getElementById('cfgLH').value=cfg.lh;
+  document.getElementById('cfgAZ').value=cfg.az;
+  document.getElementById('cfgPA').value=cfg.pa;
+  document.getElementById('cfgModal').style.display='flex';
+}
+function closeCfg() { document.getElementById('cfgModal').style.display='none'; }
+function saveCfg() {
+  cfg={sp:document.getElementById('cfgSP').value.trim().replace(/\/$/,''),li:document.getElementById('cfgLI').value.trim(),lh:document.getElementById('cfgLH').value.trim(),az:document.getElementById('cfgAZ').value.trim(),pa:document.getElementById('cfgPA').value.trim()};
+  localStorage.setItem('esmax_sst_cfg',JSON.stringify(cfg));
+  if(cfg.sp) document.getElementById('cfgBanner').style.display='none';
+  closeCfg();
+  alert('✅ Configuración guardada correctamente.');
+}
+</script>
+</body>
+</html>
