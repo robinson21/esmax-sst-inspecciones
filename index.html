@@ -415,7 +415,7 @@ const AREAS = {
 };
 
 // ── ESTADO ─────────────────────────────────
-let cfg = {sp:'https://esmaxchile.sharepoint.com/teams/SMS',li:'Inspecciones',lh:'Hallazgos',az:'',pa:'https://default729f72ac806047798ce060bbfefbb2.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/33b89f2977ff498d896fccdf04e74bc0/triggers/manual/paths/invoke?api-version=1',gemini:'AIzaSyDUrIXyf7ZfumbdRyWFzzBq-gCuZwhtkqE'};
+let cfg = {sp:'https://esmaxchile.sharepoint.com/teams/SMS',li:'Inspecciones',lh:'Hallazgos',az:'',pa:'https://default729f72ac806047798ce060bbfefbb2.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/33b89f2977ff498d896fccdf04e74bc0/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-76hbTWVB8XVhMa3_QYmGI61xV7elAfVOfE4bDk7cLI',gemini:'AIzaSyDUrIXyf7ZfumbdRyWFzzBq-gCuZwhtkqE'};
 let inspeccion = {}, hallazgos = [], fotoActual = null, critActual = '';
 
 // ── INIT ───────────────────────────────────
@@ -686,7 +686,7 @@ async function enviar() {
   pb.style.display='block'; pl.style.display='block'; si.style.display='none';
   const prog=(p,t)=>{pf.style.width=p+'%';pl.textContent=t;};
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-  const paUrl=cfg.pa||'https://default729f72ac806047798ce060bbfefbb2.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/33b89f2977ff498d896fccdf04e74bc0/triggers/manual/paths/invoke?api-version=1';
+  const paUrl=cfg.pa||'https://default729f72ac806047798ce060bbfefbb2.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/33b89f2977ff498d896fccdf04e74bc0/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-76hbTWVB8XVhMa3_QYmGI61xV7elAfVOfE4bDk7cLI';
   try {
     prog(20,'Preparando datos...');
     await sleep(300);
