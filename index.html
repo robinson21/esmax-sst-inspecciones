@@ -129,13 +129,13 @@ input[type=file]{display:none;}
     <div class="logo">ESMAX SST</div>
     <div class="sub">Sistema de Inspecciones de Seguridad</div>
   </div>
-  <div class="badge" id="headerBadge">ESMAX Distribución SpA</div>
+  <div class="badge" id="headerBadge">ESMAX</div>
   <button class="btn-cfg" onclick="showConfig()">⚙ Configurar</button>
 </div>
 
 <div class="container">
 
-  <div class="cfg-banner" id="cfgBanner">
+  <div class="cfg-banner" id="cfgBanner" style="display:none">
     <div class="ico">⚠</div>
     <p>Configura las conexiones antes de usar en producción. Haz clic en <strong>⚙ Configurar</strong> e ingresa la URL de SharePoint y la Azure Function.</p>
   </div>
@@ -415,7 +415,7 @@ const AREAS = {
 };
 
 // ── ESTADO ─────────────────────────────────
-let cfg = {sp:'https://esmaxchile.sharepoint.com/teams/SMS',li:'Inspecciones',lh:'Hallazgos',az:'',pa:'',gemini:'AIzaSyAngf6V8aOs-y4sysZjnR0XgwFtJODMQAI'};
+let cfg = {sp:'https://esmaxchile.sharepoint.com/teams/SMS',li:'Inspecciones',lh:'Hallazgos',az:'',pa:'https://default729f72ac806047798ce060bbfefbb2.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/33b89f2977ff498d896fccdf04e74bc0/triggers/manual/paths/invoke?api-version=1',gemini:'AIzaSyAngf6V8aOs-y4sysZjnR0XgwFtJODMQAI'};
 let inspeccion = {}, hallazgos = [], fotoActual = null, critActual = '';
 
 // ── INIT ───────────────────────────────────
@@ -446,7 +446,7 @@ function onTipoChange() {
   if (!tipo) {
     sel.innerHTML = '<option value="">— Selecciona primero el tipo de centro —</option>';
     info.style.display = 'none';
-    document.getElementById('headerBadge').textContent = 'ESMAX Distribución SpA';
+    document.getElementById('headerBadge').textContent = 'ESMAX';
     return;
   }
   const areas = AREAS[tipo] || [];
@@ -465,7 +465,7 @@ function onNombreInput() { updateBadge(); }
 function updateBadge() {
   const t = document.getElementById('fTipo').value;
   const n = document.getElementById('fNombre').value.trim();
-  let txt = n && t ? n+' — '+t : n || t || 'ESMAX Distribución SpA';
+  let txt = n && t ? n+' — '+t : n || t || 'ESMAX';
   document.getElementById('headerBadge').textContent = txt;
 }
 
@@ -686,70 +686,46 @@ async function enviar() {
   pb.style.display='block'; pl.style.display='block'; si.style.display='none';
   const prog=(p,t)=>{pf.style.width=p+'%';pl.textContent=t;};
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const paUrl=cfg.pa||'https://default729f72ac806047798ce060bbfefbb2.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/33b89f2977ff498d896fccdf04e74bc0/triggers/manual/paths/invoke?api-version=1';
   try {
-    prog(15,'Guardando inspección en SharePoint...');
-    let id='DEMO-'+Date.now();
-    if(cfg.sp&&cfg.li) {
-      const fd=await getDigest(cfg.sp);
-      const tipo=`SP.Data.${cfg.li.replace(/[\s-]/g,'')}ListItem`;
-      const r=await fetch(`${cfg.sp}/_api/web/lists/getbytitle('${cfg.li}')/items`,{
-        method:'POST',credentials:'include',
-        headers:{'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose','X-RequestDigest':fd},
-        body:JSON.stringify({__metadata:{type:tipo},Title:`INSP-${Date.now()}`,TipoCentroTrabajo:inspeccion.tipoCentro,NombreCentroTrabajo:inspeccion.nombreCentro,FechaInspeccion:inspeccion.fecha,Inspector:inspeccion.inspector,EmailInspector:inspeccion.email,AreaInspeccionada:inspeccion.area,Turno:inspeccion.turno||'',Observaciones:inspeccion.observaciones||'',TotalHallazgos:hallazgos.length,Estado:'Borrador'})
-      });
-      if(!r.ok) throw new Error('Error guardando en SharePoint ('+r.status+')');
-      id=(await r.json()).d.Id;
-    } else await sleep(700);
-
-    prog(35,'Guardando '+hallazgos.length+' hallazgo(s)...');
-    if(cfg.sp&&cfg.lh&&!String(id).startsWith('DEMO')) {
-      const fd2=await getDigest(cfg.sp);
-      const tipo2=`SP.Data.${cfg.lh.replace(/[\s-]/g,'')}ListItem`;
-      for(const h of hallazgos) {
-        await fetch(`${cfg.sp}/_api/web/lists/getbytitle('${cfg.lh}')/items`,{
-          method:'POST',credentials:'include',
-          headers:{'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose','X-RequestDigest':fd2},
-          body:JSON.stringify({__metadata:{type:tipo2},Title:h.titulo,InspeccionIDId:id,NumeroHallazgo:h.numero,Sector:h.sector,Criticidad:h.criticidad,Descripcion:h.descripcion,Riesgos:h.riesgos||'',Recomendaciones:h.recomendaciones||'',Normativa:h.normativa||''})
-        });
-      }
-    } else await sleep(500*hallazgos.length);
-
-    prog(60,'Disparando flujo Power Automate...');
-    if(cfg.sp&&cfg.li&&!String(id).startsWith('DEMO')) {
-      const fd3=await getDigest(cfg.sp);
-      const tipo3=`SP.Data.${cfg.li.replace(/[\s-]/g,'')}ListItem`;
-      await fetch(`${cfg.sp}/_api/web/lists/getbytitle('${cfg.li}')/items(${id})`,{
-        method:'POST',credentials:'include',
-        headers:{'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose','X-RequestDigest':fd3,'IF-MATCH':'*','X-HTTP-Method':'MERGE'},
-        body:JSON.stringify({__metadata:{type:tipo3},Estado:'Enviado'})
-      });
-    } else if(cfg.pa) {
-      await fetch(cfg.pa,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({inspeccion:{...inspeccion},hallazgos:hallazgos.map(h=>({...h,fotoPreview:undefined}))})});
-    } else await sleep(900);
-
-    prog(80,'Azure Function generando informe Word...');
-    if(cfg.az) {
-      await fetch(cfg.az,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({inspeccion:{tipoCentro:inspeccion.tipoCentro,nombreCentro:inspeccion.nombreCentro,fecha:fmtFecha(inspeccion.fecha),inspector:inspeccion.inspector,email:inspeccion.email,area:inspeccion.area},hallazgos:hallazgos.map(h=>({...h,fotoPreview:undefined}))})
-      });
-    } else await sleep(1200);
-
-    prog(100,'¡Listo!'); await sleep(300);
-    document.getElementById('v4status').innerHTML=`
-      <div class="sbox success" style="flex-direction:column;align-items:flex-start;">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-          <div class="si">✅</div>
-          <div class="st"><p>Inspección enviada exitosamente</p><p>ID de registro: ${id}</p></div>
-        </div>
-        <div style="background:var(--white);border-radius:8px;padding:12px;width:100%;font-size:12px;border:1px solid #a9dfbf;">
-          <p style="font-weight:600;color:var(--verde);margin-bottom:5px;">¿Qué ocurre ahora?</p>
-          <p style="color:var(--text2);line-height:1.6;">Power Automate procesa los hallazgos · IA analiza las fotos · La Azure Function genera el informe Word · El documento se guarda en SharePoint y se notifica por correo al equipo SST.</p>
-        </div>
-      </div>`;
-    document.getElementById('v4btns').innerHTML='<button class="btn btn-primary" onclick="nuevaInspeccion()">+ Nueva inspección</button>';
+    prog(20,'Preparando datos...');
+    await sleep(300);
+    prog(50,'Enviando a SharePoint vía Power Automate...');
+    const payload={
+      inspeccion:{
+        tipoCentro:inspeccion.tipoCentro,
+        nombreCentro:inspeccion.nombreCentro,
+        fecha:inspeccion.fecha,
+        inspector:inspeccion.inspector,
+        email:inspeccion.email,
+        area:inspeccion.area,
+        turno:inspeccion.turno||'',
+        observaciones:inspeccion.observaciones||'',
+        totalHallazgos:hallazgos.length
+      },
+      hallazgos:hallazgos.map(h=>({
+        numero:h.numero,
+        titulo:h.titulo,
+        sector:h.sector,
+        criticidad:h.criticidad,
+        descripcion:h.descripcion,
+        riesgos:h.riesgos||'',
+        recomendaciones:h.recomendaciones||'',
+        normativa:h.normativa||''
+      }))
+    };
+    const r=await fetch(paUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!r.ok) throw new Error('Error en Power Automate ('+r.status+')');
+    prog(90,'Finalizando...');
+    await sleep(500);
+    prog(100,'¡Inspección enviada!');
+    await sleep(300);
+    pb.style.display='none'; pl.style.display='none'; si.style.display='flex';
+    document.getElementById('v4status').innerHTML='<div class="sbox success"><div class="si">✓</div><div class="st"><p>¡Inspección enviada correctamente!</p><p>Los datos fueron guardados en SharePoint. Puedes cerrar la app o iniciar una nueva inspección.</p></div></div>';
+    document.getElementById('v4btns').innerHTML='<button class="btn btn-primary" onclick="location.reload()">Nueva inspección</button>';
   } catch(e) {
     pb.style.display='none'; pl.style.display='none'; si.style.display='flex';
-    document.getElementById('v4status').innerHTML=`<div class="sbox error"><div class="si">✕</div><div class="st"><p>Error al enviar</p><p>${e.message}</p></div></div>`;
+    document.getElementById('v4status').innerHTML='<div class="sbox error"><div class="si">✕</div><div class="st"><p>Error al enviar</p><p>'+e.message+'</p></div></div>';
     btn.disabled=false; btn.innerHTML='🚀 Reintentar';
   }
 }
@@ -776,7 +752,7 @@ function nuevaInspeccion() {
   document.getElementById('fTurno').value='';
   document.getElementById('fObs').value='';
   document.getElementById('tipoInfo').style.display='none';
-  document.getElementById('headerBadge').textContent='ESMAX Distribución SpA';
+  document.getElementById('headerBadge').textContent='ESMAX';
   renderH();
   document.getElementById('v4status').innerHTML='<div class="sbox info"><div class="si">ℹ</div><div class="st"><p>Listo para enviar</p><p>Los datos se guardarán en SharePoint y el informe Word se generará automáticamente.</p></div></div>';
   document.getElementById('v4btns').innerHTML='<button class="btn btn-secondary" onclick="goTo(3)">← Volver</button><button class="btn btn-success" id="btnEnviar" onclick="enviar()">🚀 Enviar inspección</button>';
