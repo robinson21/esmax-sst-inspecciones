@@ -293,9 +293,9 @@ input[type=file]{display:none;}
         <div class="form-group">
           <label>Análisis con inteligencia artificial</label>
           <div class="ia-box">
-            <div class="ia-title">🤖 Gemini AI</div>
+            <div class="ia-title">✨ Análisis IA</div>
             <div class="ia-desc">Sube la foto y la IA completará automáticamente descripción, riesgos, recomendaciones y normativa chilena aplicable.</div>
-            <button class="btn btn-primary" style="font-size:11px;padding:7px 14px;width:100%;" onclick="analizarIA()" id="btnIA">🤖 Analizar imagen con IA</button>
+            <button class="btn btn-primary" style="font-size:11px;padding:7px 14px;width:100%;" onclick="analizarIA()" id="btnIA">✨ Analizar imagen con IA</button>
           </div>
           <div id="iaStatus" style="display:none;margin-top:8px;"></div>
         </div>
@@ -357,7 +357,7 @@ input[type=file]{display:none;}
       <div id="v4metrics"></div>
       <div class="step-info" id="stepInfo">
         <div class="step-row"><div class="snum">1</div>Guardar datos de inspección y hallazgos en SharePoint</div>
-        <div class="step-row"><div class="snum">2</div>Disparar flujo Power Automate → Gemini AI analiza fotografías</div>
+        <div class="step-row"><div class="snum">2</div>Disparar flujo Power Automate → IA analiza fotografías</div>
         <div class="step-row"><div class="snum">3</div>Azure Function genera informe Word (.docx) con imágenes</div>
         <div class="step-row"><div class="snum">4</div>Guardar informe en SharePoint y notificar por correo al equipo</div>
       </div>
@@ -415,13 +415,13 @@ const AREAS = {
 };
 
 // ── ESTADO ─────────────────────────────────
-let cfg = {sp:'',li:'Inspecciones',lh:'Hallazgos',az:'',pa:''};
+let cfg = {sp:'https://esmaxchile.sharepoint.com/teams/SMS',li:'Inspecciones',lh:'Hallazgos',az:'',pa:'',gemini:'AIzaSyAngf6V8aOs-y4sysZjnR0XgwFtJODMQAI'};
 let inspeccion = {}, hallazgos = [], fotoActual = null, critActual = '';
 
 // ── INIT ───────────────────────────────────
 window.onload = () => {
   document.getElementById('fFecha').value = new Date().toISOString().split('T')[0];
-  const s = localStorage.getItem('esmax_sst_cfg');
+  const s = sessionStorage.getItem('esmax_sst_cfg');
   if (s) { cfg = {...cfg,...JSON.parse(s)}; if (cfg.sp) document.getElementById('cfgBanner').style.display='none'; }
 };
 
@@ -517,31 +517,77 @@ function selCrit(v) {
 }
 
 // ── IA ─────────────────────────────────────
+function abrirSelectorFoto() {
+  // En móvil muestra hoja con opciones: Cámara / Galería
+  // En desktop abre el explorador de archivos directamente
+  if(/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
+    // Mostrar mini modal de selección
+    const overlay = document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:flex-end;justify-content:center;padding:16px';
+    overlay.innerHTML=`
+      <div style="background:#fff;border-radius:14px;padding:8px;width:100%;max-width:400px">
+        <div style="text-align:center;padding:10px 0 14px;font-size:13px;font-weight:600;color:#7a7974">Agregar fotografía</div>
+        <button onclick="usarCamara();this.closest('[style]').remove()" style="display:flex;align-items:center;gap:14px;width:100%;padding:14px 18px;border:none;background:none;font-size:15px;cursor:pointer;border-radius:10px">
+          <span style="font-size:26px">📸</span><span>Tomar foto con la cámara</span>
+        </button>
+        <button onclick="usarGaleria();this.closest('[style]').remove()" style="display:flex;align-items:center;gap:14px;width:100%;padding:14px 18px;border:none;background:none;font-size:15px;cursor:pointer;border-radius:10px">
+          <span style="font-size:26px">🖼️</span><span>Elegir desde la galería</span>
+        </button>
+        <button onclick="this.closest('[style]').remove()" style="display:flex;align-items:center;justify-content:center;width:100%;padding:12px;border:none;background:#f5f6f8;font-size:14px;cursor:pointer;border-radius:10px;margin-top:4px;color:#7a7974">
+          Cancelar
+        </button>
+      </div>`;
+    document.body.appendChild(overlay);
+  } else {
+    document.getElementById('fotoInput').click();
+  }
+}
+function usarCamara() {
+  const inp = document.getElementById('fotoInput');
+  inp.setAttribute('capture','environment');
+  inp.click();
+  setTimeout(()=>inp.removeAttribute('capture'),1000);
+}
+function usarGaleria() {
+  const inp = document.getElementById('fotoInput');
+  inp.removeAttribute('capture');
+  inp.click();
+}
+
 async function analizarIA() {
   if(!fotoActual){alert('Primero sube una fotografía.');return;}
-  if(!cfg.az&&!cfg.pa){alert('Configura la URL de la Azure Function en ⚙ Configurar.');return;}
-  const btn=document.getElementById('btnIA'), st=document.getElementById('iaStatus');
+  const apiKey=cfg.gemini||'AIzaSyAngf6V8aOs-y4sysZjnR0XgwFtJODMQAI';
+  const btn=document.getElementById('btnIA'),st=document.getElementById('iaStatus');
   btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Analizando...';
   st.style.display='block';
-  st.innerHTML='<div class="sbox info"><div class="si">🤖</div><div class="st"><p>Enviando imagen a Gemini AI...</p><p>Esto puede tardar 5–15 segundos.</p></div></div>';
+  st.innerHTML='<div class="sbox info"><div class="si">🔍</div><div class="st"><p>Enviando imagen a IA...</p><p>Esto puede tardar 5-15 segundos.</p></div></div>';
   try {
-    const res = await fetch(cfg.az||cfg.pa, {method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({mode:'analizar',fotoBase64:fotoActual.split(',')[1],titulo:document.getElementById('hTitulo').value,sector:document.getElementById('hSector').value})});
-    const d = await res.json();
-    if(d.success&&d.analisis){
-      const a=d.analisis;
-      if(a.descripcion) document.getElementById('hDesc').value=a.descripcion;
-      if(a.riesgos) document.getElementById('hRiesgos').value=a.riesgos;
-      if(a.recomendaciones) document.getElementById('hRecs').value=a.recomendaciones;
-      if(a.normativa) document.getElementById('hNorm').value=a.normativa;
-      if(a.criticidad) selCrit(a.criticidad);
-      if(a.titulo&&!document.getElementById('hTitulo').value) document.getElementById('hTitulo').value=a.titulo;
-      st.innerHTML='<div class="sbox success"><div class="si">✅</div><div class="st"><p>Análisis completado</p><p>Revisa y corrige si es necesario antes de agregar el hallazgo.</p></div></div>';
-    } else throw new Error(d.error||'Sin respuesta válida');
+    const titulo=document.getElementById('hTitulo').value||'hallazgo de seguridad';
+    const sector=document.getElementById('hSector').value||'';
+    const prompt='Eres experto en SST en Chile. Analiza esta imagen de un hallazgo titulado "'+titulo+'"'+(sector?' en sector "'+sector+'"':'')+'. Responde SOLO con JSON: {"titulo":"título corto","descripcion":"descripción objetiva 2-3 oraciones","criticidad":"MUY ALTA o ALTA o MEDIA o BAJA","riesgos":"riesgo1; riesgo2; riesgo3","recomendaciones":"acción1; acción2; acción3","normativa":"DS 594/1999 Art.XX; Ley 16.744 Art.XX"}. Usa normativa chilena vigente. Solo el JSON.';
+    const base64=fotoActual.split(',')[1];
+    const mime=fotoActual.split(';')[0].split(':')[1]||'image/jpeg';
+    const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+apiKey,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:prompt},{inline_data:{mime_type:mime,data:base64}}]}],generationConfig:{temperature:0.2,maxOutputTokens:1024}})
+    });
+    const d=await res.json();
+    if(d.error) throw new Error(d.error.message||'Error API IA');
+    const raw=d.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    const match=raw.match(/\{[\s\S]*\}/);
+    if(!match) throw new Error('No se pudo interpretar la respuesta');
+    const a=JSON.parse(match[0]);
+    if(a.descripcion) document.getElementById('hDesc').value=a.descripcion;
+    if(a.riesgos) document.getElementById('hRiesgos').value=a.riesgos;
+    if(a.recomendaciones) document.getElementById('hRecs').value=a.recomendaciones;
+    if(a.normativa) document.getElementById('hNorm').value=a.normativa;
+    if(a.criticidad) selCrit(a.criticidad);
+    if(a.titulo&&!document.getElementById('hTitulo').value) document.getElementById('hTitulo').value=a.titulo;
+    st.innerHTML='<div class="sbox success"><div class="si">✓</div><div class="st"><p>Análisis completado por IA</p><p>Revisa y ajusta si es necesario antes de agregar el hallazgo.</p></div></div>';
   } catch(e) {
-    st.innerHTML=`<div class="sbox error"><div class="si">✕</div><div class="st"><p>Error en el análisis</p><p>${e.message}. Completa los campos manualmente.</p></div></div>`;
+    st.innerHTML='<div class="sbox error"><div class="si">✕</div><div class="st"><p>Error en el análisis</p><p>'+e.message+'. Completa los campos manualmente.</p></div></div>';
   }
-  btn.disabled=false; btn.innerHTML='🤖 Analizar imagen con IA';
+  btn.disabled=false; btn.innerHTML='✨ Analizar imagen con IA';
 }
 
 // ── HALLAZGOS ──────────────────────────────
@@ -697,7 +743,7 @@ async function enviar() {
         </div>
         <div style="background:var(--white);border-radius:8px;padding:12px;width:100%;font-size:12px;border:1px solid #a9dfbf;">
           <p style="font-weight:600;color:var(--verde);margin-bottom:5px;">¿Qué ocurre ahora?</p>
-          <p style="color:var(--text2);line-height:1.6;">Power Automate procesa los hallazgos · Gemini AI analiza las fotos · La Azure Function genera el informe Word · El documento se guarda en SharePoint y se notifica por correo al equipo SST.</p>
+          <p style="color:var(--text2);line-height:1.6;">Power Automate procesa los hallazgos · IA analiza las fotos · La Azure Function genera el informe Word · El documento se guarda en SharePoint y se notifica por correo al equipo SST.</p>
         </div>
       </div>`;
     document.getElementById('v4btns').innerHTML='<button class="btn btn-primary" onclick="nuevaInspeccion()">+ Nueva inspección</button>';
@@ -774,13 +820,14 @@ function showConfig() {
   document.getElementById('cfgLH').value=cfg.lh;
   document.getElementById('cfgAZ').value=cfg.az;
   document.getElementById('cfgPA').value=cfg.pa;
+  document.getElementById('cfgIA').value=cfg.gemini||'AIzaSyAngf6V8aOs-y4sysZjnR0XgwFtJODMQAI';
   document.getElementById('cfgModal').style.display='flex';
 }
 function closeCfg() { document.getElementById('cfgModal').style.display='none'; }
 function saveCfg() {
   cfg={sp:document.getElementById('cfgSP').value.trim().replace(/\/$/,''),li:document.getElementById('cfgLI').value.trim(),lh:document.getElementById('cfgLH').value.trim(),az:document.getElementById('cfgAZ').value.trim(),pa:document.getElementById('cfgPA').value.trim()};
-  localStorage.setItem('esmax_sst_cfg',JSON.stringify(cfg));
-  if(cfg.sp) document.getElementById('cfgBanner').style.display='none';
+  sessionStorage.setItem('esmax_sst_cfg',JSON.stringify(cfg));
+  document.getElementById('cfgBanner').style.display='none';
   closeCfg();
   alert('✅ Configuración guardada correctamente.');
 }
