@@ -415,7 +415,7 @@ const AREAS = {
 };
 
 // ── ESTADO ─────────────────────────────────
-let cfg = {sp:'https://esmaxchile.sharepoint.com/teams/SMS',li:'Inspecciones',lh:'Hallazgos',az:'',pa:'https://default729f72ac806047798ce060bbfefbb2.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/33b89f2977ff498d896fccdf04e74bc0/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-76hbTWVB8XVhMa3_QYmGI61xV7elAfVOfE4bDk7cLI',gemini:'',pa2:'https://default729f72ac806047798ce060bbfefbb2.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c8433867e42e4526b796941e943f896f/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=bpHWqW_I_Wk6VD07KA-rL17hRRj6EgP93p5LvzFZbS0';
+let cfg = {sp:'https://esmaxchile.sharepoint.com/teams/SMS',li:'Inspecciones',lh:'Hallazgos',az:'',pa:'https://default729f72ac806047798ce060bbfefbb2.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/33b89f2977ff498d896fccdf04e74bc0/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-76hbTWVB8XVhMa3_QYmGI61xV7elAfVOfE4bDk7cLI',gemini:'',pa2:'https://default729f72ac806047798ce060bbfefbb2.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c8433867e42e4526b796941e943f896f/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=bpHWqW_I_Wk6VD07KA-rL17hRRj6EgP93p5LvzFZbS0'};
 let inspeccion = {}, hallazgos = [], fotoActual = null, critActual = '';
 
 // ── INIT ───────────────────────────────────
@@ -819,7 +819,7 @@ function showConfig() {
 }
 function closeCfg() { document.getElementById('cfgModal').style.display='none'; }
 function saveCfg() {
-  cfg={sp:document.getElementById('cfgSP').value.trim().replace(/\/$/,''),li:document.getElementById('cfgLI').value.trim(),lh:document.getElementById('cfgLH').value.trim(),az:document.getElementById('cfgAZ').value.trim(),pa:document.getElementById('cfgPA').value.trim()};
+  cfg={sp:document.getElementById('cfgSP').value.trim().replace(/\/$/,''),li:document.getElementById('cfgLI').value.trim(),lh:document.getElementById('cfgLH').value.trim(),az:document.getElementById('cfgAZ').value.trim(),pa:document.getElementById('cfgPA').value.trim(),pa2:cfg.pa2,gemini:cfg.gemini};
   sessionStorage.setItem('esmax_sst_cfg',JSON.stringify(cfg));
   document.getElementById('cfgBanner').style.display='none';
   closeCfg();
