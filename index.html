@@ -415,7 +415,7 @@ const AREAS = {
 };
 
 // ── ESTADO ─────────────────────────────────
-let cfg = {sp:'https://esmaxchile.sharepoint.com/teams/SMS',li:'Inspecciones',lh:'Hallazgos',az:'',pa:'https://default729f72ac806047798ce060bbfefbb2.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/33b89f2977ff498d896fccdf04e74bc0/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-76hbTWVB8XVhMa3_QYmGI61xV7elAfVOfE4bDk7cLI',gemini:'AIzaSyDUrIXyf7ZfumbdRyWFzzBq-gCuZwhtkqE',geminiFlow:'https://default729f72ac806047798ce060bbfefbb2.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c8433867e42e4526b796941e943f896f/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=bpHWqW_I_Wk6VD07KA-rL17hRRj6EgP93p5LvzFZbS0'};
+let cfg = {sp:'https://esmaxchile.sharepoint.com/teams/SMS',li:'Inspecciones',lh:'Hallazgos',az:'',pa:'https://default729f72ac806047798ce060bbfefbb2.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/33b89f2977ff498d896fccdf04e74bc0/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-76hbTWVB8XVhMa3_QYmGI61xV7elAfVOfE4bDk7cLI',gemini:'',pa2:'https://default729f72ac806047798ce060bbfefbb2.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c8433867e42e4526b796941e943f896f/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=bpHWqW_I_Wk6VD07KA-rL17hRRj6EgP93p5LvzFZbS0';
 let inspeccion = {}, hallazgos = [], fotoActual = null, critActual = '';
 
 // ── INIT ───────────────────────────────────
@@ -556,39 +556,38 @@ function usarGaleria() {
 
 async function analizarIA() {
   if(!fotoActual){alert('Primero sube una fotografía.');return;}
-  const flowUrl=cfg.geminiFlow||'https://default729f72ac806047798ce060bbfefbb2.e0.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c8433867e42e4526b796941e943f896f/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=bpHWqW_I_Wk6VD07KA-rL17hRRj6EgP93p5LvzFZbS0';
+  const flowUrl=cfg.pa2;
+  if(!flowUrl){alert('\u26a0\ufe0f Debes configurar la URL del flujo Power Automate (IA).\nVe a \u2699 Configurar e ingresa la URL del flujo Gemini-Analisis-SST.');return;}
   const btn=document.getElementById('btnIA'),st=document.getElementById('iaStatus');
-  btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Analizando...';
+  btn.disabled=true; btn.innerHTML='<div class=\"spinner\"></div> Analizando...';
   st.style.display='block';
-  st.innerHTML='<div class="sbox info"><div class="si">🔍</div><div class="st"><p>Enviando imagen al flujo Gemini AI...</p><p>Esto puede tardar 5-15 segundos.</p></div></div>';
+  st.innerHTML='<div class=\"sbox info\"><div class=\"si\">\ud83d\udd0d</div><div class=\"st\"><p>Enviando imagen a IA...</p><p>Esto puede tardar 5-15 segundos.</p></div></div>';
   try {
+    const titulo=document.getElementById('hTitulo').value||'hallazgo de seguridad';
+    const sector=document.getElementById('hSector').value||'';
     const base64=fotoActual.split(',')[1];
     const mime=fotoActual.split(';')[0].split(':')[1]||'image/jpeg';
-    // Payload compatible con flujo Power Automate Gemini-Analisis-IA
     const res=await fetch(flowUrl,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({imagen_base64:base64,mime_type:mime})
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({imagen_base64:base64,mime_type:mime,titulo:titulo,sector:sector})
     });
-    if(!res.ok) throw new Error('Error en el flujo Gemini ('+res.status+')');
     const d=await res.json();
-    // El flujo devuelve { resultado: "texto..." }
-    const raw=d.resultado||d.analisis||d.text||'';
-    if(!raw) throw new Error(d.error||'Sin respuesta del flujo');
-    const match=raw.match(/\{[\s\S]*\}/);
-    if(!match) throw new Error('Respuesta no estructurada: '+raw.substring(0,100));
+    if(d.error) throw new Error(d.error||'Error en el flujo IA');
+    const raw=d.resultado||'';
+    const match=raw.match(/[{][\s\S]*[}]/);
+    if(!match) throw new Error('No se pudo interpretar la respuesta de la IA');
     const a=JSON.parse(match[0]);
     if(a.descripcion) document.getElementById('hDesc').value=a.descripcion;
     if(a.riesgos) document.getElementById('hRiesgos').value=a.riesgos;
     if(a.recomendaciones) document.getElementById('hRecs').value=a.recomendaciones;
     if(a.normativa) document.getElementById('hNorm').value=a.normativa;
-    if(a.criticidad) selCrit(a.criticidad.toUpperCase());
+    if(a.criticidad) selCrit(a.criticidad);
     if(a.titulo&&!document.getElementById('hTitulo').value) document.getElementById('hTitulo').value=a.titulo;
-    st.innerHTML='<div class="sbox success"><div class="si">✓</div><div class="st"><p>Análisis completado por IA</p><p>Revisa y ajusta si es necesario antes de agregar el hallazgo.</p></div></div>';
+    st.innerHTML='<div class=\"sbox success\"><div class=\"si\">\u2713</div><div class=\"st\"><p>An\u00e1lisis completado por IA</p><p>Revisa y ajusta si es necesario antes de agregar el hallazgo.</p></div></div>';
   } catch(e) {
-    st.innerHTML='<div class="sbox error"><div class="si">✕</div><div class="st"><p>Error en el análisis</p><p>'+e.message+'. Completa los campos manualmente.</p></div></div>';
+    st.innerHTML='<div class=\"sbox error\"><div class=\"si\">\u2715</div><div class=\"st\"><p>Error en el an\u00e1lisis</p><p>'+e.message+'. Completa los campos manualmente.</p></div></div>';
   }
-  btn.disabled=false; btn.innerHTML='✨ Analizar imagen con IA';
+  btn.disabled=false; btn.innerHTML='\u2728 Analizar imagen con IA';
 }
 
 // ── HALLAZGOS ──────────────────────────────
@@ -815,12 +814,12 @@ function showConfig() {
   document.getElementById('cfgLH').value=cfg.lh;
   document.getElementById('cfgAZ').value=cfg.az;
   document.getElementById('cfgPA').value=cfg.pa;
-  document.getElementById('cfgIA').value=cfg.gemini||'AIzaSyDUrIXyf7ZfumbdRyWFzzBq-gCuZwhtkqE';
+  document.getElementById('cfgIA').value=cfg.pa2||'';
   document.getElementById('cfgModal').style.display='flex';
 }
 function closeCfg() { document.getElementById('cfgModal').style.display='none'; }
 function saveCfg() {
-  cfg={sp:document.getElementById('cfgSP').value.trim().replace(/\/$/,''),li:document.getElementById('cfgLI').value.trim(),lh:document.getElementById('cfgLH').value.trim(),az:document.getElementById('cfgAZ').value.trim(),pa:document.getElementById('cfgPA').value.trim(),geminiFlow:document.getElementById('cfgGeminiFlow')?document.getElementById('cfgGeminiFlow').value.trim():(cfg.geminiFlow||'')};
+  cfg={sp:document.getElementById('cfgSP').value.trim().replace(/\/$/,''),li:document.getElementById('cfgLI').value.trim(),lh:document.getElementById('cfgLH').value.trim(),az:document.getElementById('cfgAZ').value.trim(),pa:document.getElementById('cfgPA').value.trim()};
   sessionStorage.setItem('esmax_sst_cfg',JSON.stringify(cfg));
   document.getElementById('cfgBanner').style.display='none';
   closeCfg();
