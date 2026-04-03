@@ -597,7 +597,7 @@ function agregarH() {
   if(!v('hSector')){alert('Ingresa el sector / ubicación.');document.getElementById('hSector').focus();return;}
   if(!v('hDesc'))  {alert('Ingresa la descripción del hallazgo.');document.getElementById('hDesc').focus();return;}
   if(!critActual)  {alert('Selecciona el nivel de criticidad.');return;}
-  hallazgos.push({numero:hallazgos.length+1,titulo:v('hTitulo'),sector:v('hSector'),criticidad:critActual,descripcion:v('hDesc'),riesgos:v('hRiesgos'),recomendaciones:v('hRecs'),normativa:v('hNorm'),fotoBase64:fotoActual?fotoActual.split(',')[1]:null,fotoPreview:fotoActual});
+  hallazgos.push({numero:hallazgos.length+1,titulo:v('hTitulo'),sector:v('hSector'),criticidad:critActual,descripcion:v('hDesc'),riesgos:v('hRiesgos'),recomendaciones:v('hRecs'),normativa:v('hNorm'),fotoData:fotoActual||null,fotoNombre:window._fotoNombre||('hallazgo-'+(hallazgos.length+1)+'.jpg'),fotoPreview:fotoActual});
   renderH(); limpiarH();
 }
 
@@ -678,6 +678,22 @@ function buildMetrics() {
 }
 
 // ── ENVIAR ─────────────────────────────────
+async function comprimirFoto(dataUrl, maxW=1200, quality=0.75) {
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      let w=img.width, h=img.height;
+      if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
+      const c=document.createElement('canvas');
+      c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      const compressed=c.toDataURL('image/jpeg',quality);
+      resolve(compressed.split(',')[1]); // solo base64 sin prefijo
+    };
+    img.src=dataUrl;
+  });
+}
+
 async function enviar() {
   const btn=document.getElementById('btnEnviar'), pb=document.getElementById('progBar');
   const pf=document.getElementById('progFill'), pl=document.getElementById('progLabel');
@@ -703,7 +719,7 @@ async function enviar() {
         observaciones:inspeccion.observaciones||'',
         totalHallazgos:hallazgos.length
       },
-      hallazgos:hallazgos.map(h=>({
+      hallazgos:await Promise.all(hallazgos.map(async h=>({
         numero:h.numero,
         titulo:h.titulo,
         sector:h.sector,
@@ -711,8 +727,10 @@ async function enviar() {
         descripcion:h.descripcion,
         riesgos:h.riesgos||'',
         recomendaciones:h.recomendaciones||'',
-        normativa:h.normativa||''
-      }))
+        normativa:h.normativa||'',
+        fotoBase64:h.fotoData?await comprimirFoto(h.fotoData):null,
+        fotoNombre:h.fotoNombre||null
+      })))
     };
     const r=await fetch(paUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(!r.ok) throw new Error('Error en Power Automate ('+r.status+')');
